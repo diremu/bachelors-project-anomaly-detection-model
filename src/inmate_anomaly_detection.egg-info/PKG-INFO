@@ -1,3 +1,21 @@
+Metadata-Version: 2.4
+Name: inmate-anomaly-detection
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: albumentations>=2.0.8
+Requires-Dist: jupyter>=1.1.1
+Requires-Dist: matplotlib>=3.10.9
+Requires-Dist: numpy>=2.4.6
+Requires-Dist: opencv-python>=4.13.0.92
+Requires-Dist: pillow>=12.2.0
+Requires-Dist: scikit-learn>=1.9.0
+Requires-Dist: seaborn>=0.13.2
+Requires-Dist: torch>=2.12.0
+Requires-Dist: torchvision>=0.27.0
+Requires-Dist: tqdm>=4.67.3
+
 # Inmate Anomaly Detection
 
 Computer vision pipeline for predicting inmate violence in Nigerian correctional facilities via anomaly detection in surveillance footage.
