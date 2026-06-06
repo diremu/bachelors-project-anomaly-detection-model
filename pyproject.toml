@@ -1,7 +1,7 @@
 [project]
 name = "inmate-anomaly-detection"
 version = "0.1.0"
-description = "Add your description here"
+description = "This model is an inmate anomaly detection model designed to detect anomalous actions from inmates in correctional facilities in Nigeria. The model is trained on the UCF-Crime, Avenue and ShanghaiTech datasets."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

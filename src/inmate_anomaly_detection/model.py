@@ -172,10 +172,10 @@ class SpatiotemporalModel(nn.Module):
 
     def anomaly_score(self, x: torch.Tensor) -> torch.Tensor:
         """Compute per-clip anomaly scores. Higher = more anomalous."""
-        reconstructed = self.forward(x)
         B, T, C, H, W = x.shape
         x_flat = x.view(B * T, C, H, W)
-        original_feats = self.cnn_encoder(x_flat).view(B, T, -1)
+        original_feats = self.cnn_encoder(x_flat).view(B, T, -1)  # run CNN once
+        reconstructed, _ = self.lstm_ae(original_feats)            # reconstruct
         return self.lstm_ae.compute_reconstruction_error(original_feats, reconstructed)
 
 
