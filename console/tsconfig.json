@@ -4,7 +4,9 @@
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ],
-  "types": [
+  "compilerOptions": {
+    "types": [
     "types/wicg-file-system-access"
   ]
+  }
 }
