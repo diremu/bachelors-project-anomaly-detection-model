@@ -1,6 +1,5 @@
-import React from 'react';
 import Sidebar from './Sidebar';
-import SystemOverview from './SystemOverview';
+import { Outlet } from 'react-router-dom';
 
 export default function Dashboard() {
   return (
@@ -23,7 +22,7 @@ export default function Dashboard() {
       <div className="flex w-full h-full pt-16">
         <Sidebar />
         <main className="flex-1 p-6 overflow-y-auto">
-          <SystemOverview />
+          <Outlet />
         </main>
       </div>
     </div>
