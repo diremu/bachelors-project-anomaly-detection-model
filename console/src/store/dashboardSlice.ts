@@ -1,6 +1,7 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { DashboardState, Anomaly, VerificationStatus } from '../types';
 
-const initialState = {
+const initialState: DashboardState = {
   metrics: {
     accurateDetections: 96.5,
     falsePositives: 2.1,
