@@ -9,7 +9,11 @@ type UserProfile = {
   email?: string;
 };
 
-export default function Sidebar() {
+type SidebarProps = {
+  onLogout: () => void;
+};
+
+export default function Sidebar({ onLogout }: SidebarProps) {
   const [user, setUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
@@ -73,7 +77,11 @@ export default function Sidebar() {
             <p className="text-xs text-gray-500">{user?.badge ? `Badge ${user.badge}` : 'Administrator'}</p>
           </div>
         </div>
-        <button className="w-full py-2 bg-teal-600/20 text-teal-500 hover:bg-teal-600 hover:text-white rounded text-sm font-medium transition-colors border border-teal-600/30">
+        <button
+          type="button"
+          onClick={onLogout}
+          className="w-full py-2 bg-teal-600/20 text-teal-500 hover:bg-teal-600 hover:text-white rounded text-sm font-medium transition-colors border border-teal-600/30"
+        >
           LOG OUT
         </button>
       </div>
