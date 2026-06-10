@@ -40,7 +40,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
         
         <div className="mb-6">
            <div className="flex items-center gap-2 text-sm mb-2 text-gray-300">
-            <span className="text-gray-500">📊</span> Operational Data
+            <span className="text-gray-500">•</span> Operational Data
           </div>
           <nav className="pl-6 space-y-1 text-sm">
             <NavLink to="/overview" className={linkStyles}>System Overview</NavLink>
@@ -51,7 +51,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
 
         <div>
           <div className="flex items-center gap-2 text-sm mb-2 text-gray-300">
-            <span className="text-gray-500">⚙️</span> Configuration
+            <span className="text-gray-500">•</span> Configuration
           </div>
           <nav className="pl-6 space-y-1 text-sm">
             <NavLink to="/config" className={linkStyles}>Storage & Integration</NavLink>

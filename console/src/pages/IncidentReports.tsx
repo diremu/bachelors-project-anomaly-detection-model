@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppSelector, useAppDispatch } from '../store';
 import { updateVerification } from '../store/dashboardSlice';
-import { Severity, VerificationStatus } from '../types';
+import type { Severity, VerificationStatus } from '../types';
 
 export const IncidentReports: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -23,7 +23,7 @@ export const IncidentReports: React.FC = () => {
     }
   };
 
-  const getVerificationBadge = (status: VerificationStatus, id: string): JSX.Element => {
+  const getVerificationBadge = (status: VerificationStatus, id: string): React.ReactElement => {
     const baseClasses = "px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80";
     switch (status) {
       case 'Verified':

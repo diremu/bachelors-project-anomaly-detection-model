@@ -16,8 +16,8 @@ const StatRow = ({ label, value, trend, isPercentage = false }: StatRowProps) =>
       <span className="text-white font-medium text-lg">
         {value}{isPercentage ? '%' : ''}
       </span>
-      {trend === 'up' && <span className="text-green-500 text-xs">▲</span>}
-      {trend === 'down' && <span className="text-red-500 text-xs">▼</span>}
+      {trend === 'up' && <span className="text-green-500 text-xs font-medium">▲</span>}
+      {trend === 'down' && <span className="text-red-500 text-xs font-medium">▼</span>}
     </div>
   </div>
 );

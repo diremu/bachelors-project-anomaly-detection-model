@@ -6,13 +6,7 @@ import SystemOverview from './components/SystemOverview';
 import { Auth } from './pages/Auth';
 import { Configuration } from './pages/Configuration';
 import { IncidentReports } from './pages/IncidentReports';
-import {LiveFeeds} from './pages/LiveFeed'
-
-const PlaceholderPage = ({ title }: { title: string }) => (
-  <div className="flex h-full items-center justify-center text-gray-500 font-poppins">
-    <h2 className="text-xl">{title} Module - Pending Implementation</h2>
-  </div>
-);
+import { LiveFeeds } from './pages/LiveFeed';
 
 const AUTH_SESSION_KEY = 'console_auth_active';
 

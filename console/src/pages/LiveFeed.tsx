@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 
 export const LiveFeeds: React.FC = () => {
-  const [feedDirectory, setFeedDirectory] = useState('/mnt/surveillance/cam_group_alpha');
+  const [feedDirectory, setFeedDirectory] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = () => {
     setIsConnecting(true);
     setTimeout(() => setIsConnecting(false), 1500); // Mock connection delay
+  };
+
+  const handleDirectorySelect = async () => {
+    try {
+        const dirHandle = await (window as any).showDirectoryPicker();
+        setFeedDirectory(dirHandle.name);
+    } catch (error) {
+        console.error('Directory selection cancelled or failed:', error);
+    }
   };
 
   return (
@@ -18,28 +27,28 @@ export const LiveFeeds: React.FC = () => {
 
       <div className="bg-[#161b22] p-6 rounded-xl border border-gray-800/60 shadow-lg max-w-2xl">
         <h2 className="text-sm font-medium text-gray-300 mb-4 flex items-center gap-2">
-          <span className="text-teal-500">🔌</span> Feed Directory Configuration
+          Feed Directory Configuration
         </h2>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">Active Stream Path</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">Select Stream Directory</label>
             <div className="flex gap-3">
-              <input 
-                type="text" 
-                value={feedDirectory}
-                onChange={(e) => setFeedDirectory(e.target.value)}
-                className="flex-1 px-4 py-2 bg-[#0d1117] border border-gray-700 rounded text-gray-300 focus:outline-none focus:border-teal-500 transition-colors font-mono text-sm"
-                placeholder="/path/to/video/stream"
-              />
+              <button 
+                onClick={handleDirectorySelect}
+                className="px-4 py-2 bg-[#0d1117] border border-gray-700 hover:border-teal-500 rounded text-gray-300 transition-colors font-mono text-sm flex-1 text-left"
+              >
+                {feedDirectory ? ` .../${feedDirectory}` : ' Click to browse directories...'}
+              </button>
               <button 
                 onClick={handleConnect}
-                disabled={isConnecting}
+                disabled={isConnecting || !feedDirectory}
                 className="px-6 py-2 bg-teal-600/20 text-teal-500 hover:bg-teal-600 hover:text-white border border-teal-600/30 rounded font-medium transition-all text-sm disabled:opacity-50"
               >
                 {isConnecting ? 'Connecting...' : 'Mount Directory'}
               </button>
             </div>
+            {feedDirectory && <p className="text-xs text-gray-500 mt-2">Selected: {feedDirectory}</p>}
           </div>
         </div>
 

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 
 export const Configuration: React.FC = () => {
   const [config, setConfig] = useState({
-    trainDir: '/data/models/v3/train_dataset',
-    testDir: '/data/models/v3/test_dataset',
+    trainDir: '',
+    testDir: '',
     retentionDays: '30'
   });
 
@@ -13,6 +13,20 @@ export const Configuration: React.FC = () => {
     e.preventDefault();
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleTrainDirSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setConfig({...config, trainDir: files[0].webkitRelativePath || files[0].name});
+    }
+  };
+
+  const handleTestDirSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setConfig({...config, testDir: files[0].webkitRelativePath || files[0].name});
+    }
   };
 
   return (
@@ -30,22 +44,24 @@ export const Configuration: React.FC = () => {
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">Training Directory</label>
             <input 
-              type="text" 
-              value={config.trainDir}
-              onChange={(e) => setConfig({...config, trainDir: e.target.value})}
+              type="file" 
+              onChange={handleTrainDirSelect}
               className="w-full px-4 py-2 bg-[#0d1117] border border-gray-700 rounded text-gray-300 focus:outline-none focus:border-teal-500 transition-colors font-mono text-sm"
+              {...({ webkitdirectory: true } as any)}
             />
+            {config.trainDir && <p className="text-xs text-gray-500 mt-1">Selected: {config.trainDir}</p>}
             <p className="text-xs text-gray-500 mt-1">Path to historical video segments used for retraining the anomaly detection weights.</p>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">Testing Directory</label>
             <input 
-              type="text" 
-              value={config.testDir}
-              onChange={(e) => setConfig({...config, testDir: e.target.value})}
+              type="file" 
+              onChange={handleTestDirSelect}
               className="w-full px-4 py-2 bg-[#0d1117] border border-gray-700 rounded text-gray-300 focus:outline-none focus:border-teal-500 transition-colors font-mono text-sm"
+              {...({ webkitdirectory: true } as any)}
             />
+            {config.testDir && <p className="text-xs text-gray-500 mt-1">Selected: {config.testDir}</p>}
           </div>
         </div>
 
