@@ -19,7 +19,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       <div className="absolute top-0 w-full h-16 flex items-center justify-between px-6 bg-[#161b22] border-b border-gray-800 z-10">
         <div className="flex items-center gap-3">
           <span className="text-xl font-semibold tracking-wide">
-            INMATE ANOMALY DETECTION <span className="text-gray-500 font-light">| SYSTEM OVERVIEW</span>
+            INMATE ANOMALY DETECTION
           </span>
         </div>
         <div className="flex items-center gap-4">
