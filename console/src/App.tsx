@@ -1,10 +1,8 @@
-import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import DashboardLayout from './DashboardLayout';
-import SystemOverview from './SystemOverview';
+import DashboardLayout from './components/Dashboard';
+import SystemOverview from './components/SystemOverview';
 
-// Quick placeholder components for other sidebar links
-const PlaceholderPage = ({ title }) => (
+const PlaceholderPage = ({ title }: { title: string }) => (
   <div className="flex h-full items-center justify-center text-gray-500 font-poppins">
     <h2 className="text-xl">{title} Module - Pending Implementation</h2>
   </div>

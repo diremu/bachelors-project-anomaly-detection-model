@@ -1,8 +1,15 @@
-import React, { useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { tickTimer } from '../store/dashboardSlice.js';
+import { useEffect } from 'react';
+import { tickTimer } from '../store/dashboardSlice';
+import { useAppDispatch, useAppSelector } from '../store';
 
-const StatRow = ({ label, value, trend, isPercentage = false }) => (
+type StatRowProps = {
+  label: string;
+  value: number | string;
+  trend?: 'up' | 'down';
+  isPercentage?: boolean;
+};
+
+const StatRow = ({ label, value, trend, isPercentage = false }: StatRowProps) => (
   <div className="flex justify-between items-center py-2 border-b border-gray-800/50 last:border-0 hover:bg-[#1c2128]/50 px-2 rounded transition-colors">
     <span className="text-gray-300 text-sm">{label}</span>
     <div className="flex items-center gap-2">
@@ -15,7 +22,7 @@ const StatRow = ({ label, value, trend, isPercentage = false }) => (
   </div>
 );
 
-const BlockStat = ({ label, value }) => (
+const BlockStat = ({ label, value }: { label: string; value: number | string }) => (
   <div className="bg-gradient-to-br from-[#1c2128] to-[#161b22] p-4 rounded border border-gray-800 flex flex-col items-center justify-center text-center shadow-inner">
     <span className="text-xs text-gray-400 mb-1">{label}</span>
     <span className="text-2xl font-semibold text-white tracking-tight">{value.toLocaleString()}</span>
@@ -23,8 +30,8 @@ const BlockStat = ({ label, value }) => (
 );
 
 export function TopMetrics() {
-  const dispatch = useDispatch();
-  const { metrics, breakdown, currentAnomalyTimer } = useSelector((state) => state.dashboard);
+  const dispatch = useAppDispatch();
+  const { metrics, breakdown, currentAnomalyTimer } = useAppSelector((state) => state.dashboard);
 
   useEffect(() => {
     const interval = setInterval(() => dispatch(tickTimer()), 1000);

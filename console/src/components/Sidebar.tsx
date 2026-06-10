@@ -1,9 +1,8 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 
 export default function Sidebar() {
   // A helper function to apply active styles using Tailwind
-  const linkStyles = ({ isActive }) =>
+  const linkStyles = ({ isActive }: { isActive: boolean }) =>
     `block py-1.5 px-3 rounded transition-colors ${
       isActive ? 'bg-[#1c2128] text-white font-medium border-l-2 border-teal-500' : 'text-gray-400 hover:text-white hover:bg-[#1c2128]/50'
     }`;

@@ -1,5 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { DashboardState, Anomaly, VerificationStatus } from '../types';
+import { createSlice } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import type { DashboardState, Anomaly, VerificationStatus, AnomalyBreakdown } from '../types';
 
 const initialState: DashboardState = {
   metrics: {
@@ -28,7 +29,7 @@ const dashboardSlice = createSlice({
   initialState,
   reducers: {
     // Fired by your WebSocket when a new VAD inference arrives
-    receiveNewAnomaly: (state, action) => {
+    receiveNewAnomaly: (state, action: PayloadAction<Anomaly>) => {
       // 1. Add to the top of the log
       state.recentAnomalies.unshift(action.payload);
       // Keep log bounded to 50 items to prevent DOM bloat
@@ -39,12 +40,12 @@ const dashboardSlice = createSlice({
       state.metrics.anomaliesIdentified += 1;
       
       // 3. Update specific breakdown
-      const typeMap = {
+      const typeMap: Record<string, keyof AnomalyBreakdown> = {
         'Loitering': 'loitering',
         'Abnormal Aggregation': 'unusualAggregation',
         'Boundary Breach': 'boundaryBreach'
       };
-      const key = typeMap[action.payload.anomalyType];
+      const key = typeMap[action.payload.anomalyType] as keyof AnomalyBreakdown | undefined;
       if (key) state.breakdown[key] += 1;
 
       // 4. Reset the live timer
@@ -53,7 +54,7 @@ const dashboardSlice = createSlice({
     tickTimer: (state) => {
       state.currentAnomalyTimer += 1;
     },
-    updateVerification: (state, action) => {
+    updateVerification: (state, action: PayloadAction<{ id: string; status: VerificationStatus }>) => {
       const { id, status } = action.payload;
       const anomaly = state.recentAnomalies.find(a => a.id === id);
       if (anomaly) anomaly.verification = status;

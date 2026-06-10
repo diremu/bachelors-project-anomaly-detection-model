@@ -1,12 +1,12 @@
-import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useAppDispatch, useAppSelector } from '../store';
+import type { VerificationStatus } from '../types';
 import { updateVerification } from '../store/dashboardSlice';
 
 export default function RecentAnomaliesLog() {
-  const dispatch = useDispatch();
-  const anomalies = useSelector((state) => state.dashboard.recentAnomalies);
+  const dispatch = useAppDispatch();
+  const anomalies = useAppSelector((state) => state.dashboard.recentAnomalies);
 
-  const getSeverityColor = (severity) => {
+  const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'text-red-500 font-semibold bg-red-500/10 px-2 py-1 rounded-md';
       case 'warning': return 'text-amber-500 font-medium';
@@ -15,7 +15,7 @@ export default function RecentAnomaliesLog() {
     }
   };
 
-  const getVerificationBadge = (status, id) => {
+  const getVerificationBadge = (status: VerificationStatus, id: string) => {
     const baseClasses = "px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80";
     switch (status) {
       case 'Verified':
