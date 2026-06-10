@@ -17,6 +17,7 @@ const initialState: DashboardState = {
     systemOffline: 20,
   },
   currentAnomalyTimer: 23,
+  isTimerActive: false,
   recentAnomalies: [
     { id: 'evt_001', timestamp: '10:14:29 AM', location: 'Block A - Perimeter Fence 3', inmateId: '#451', anomalyType: 'Loitering', duration: '15s', verification: 'Verified', severity: 'warning' },
     { id: 'evt_002', timestamp: '10:13:42 AM', location: 'Yard 1 - Blind Spot', inmateId: '#203', anomalyType: 'Trajectory Deviation', duration: '8s', verification: 'Pending', severity: 'warning' },
@@ -28,18 +29,15 @@ const dashboardSlice = createSlice({
   name: 'dashboard',
   initialState,
   reducers: {
-    // Fired by your WebSocket when a new VAD inference arrives
     receiveNewAnomaly: (state, action: PayloadAction<Anomaly>) => {
-      // 1. Add to the top of the log
       state.recentAnomalies.unshift(action.payload);
-      // Keep log bounded to 50 items to prevent DOM bloat
       if (state.recentAnomalies.length > 50) state.recentAnomalies.pop();
-
-      // 2. Update global metrics
       state.metrics.totalEvents += 1;
       state.metrics.anomaliesIdentified += 1;
+
+      state.currentAnomalyTimer = 0;
+      state.isTimerActive = true;
       
-      // 3. Update specific breakdown
       const typeMap: Record<string, keyof AnomalyBreakdown> = {
         'Loitering': 'loitering',
         'Abnormal Aggregation': 'unusualAggregation',
@@ -52,7 +50,13 @@ const dashboardSlice = createSlice({
       state.currentAnomalyTimer = 0;
     },
     tickTimer: (state) => {
-      state.currentAnomalyTimer += 1;
+      if (state.isTimerActive) {
+        state.currentAnomalyTimer += 1;
+      }
+    },
+    resolveActiveAnomaly: (state) => {
+      state.isTimerActive = false;
+      state.currentAnomalyTimer = 0;
     },
     updateVerification: (state, action: PayloadAction<{ id: string; status: VerificationStatus }>) => {
       const { id, status } = action.payload;
@@ -62,5 +66,5 @@ const dashboardSlice = createSlice({
   }
 });
 
-export const { receiveNewAnomaly, tickTimer, updateVerification } = dashboardSlice.actions;
+export const { receiveNewAnomaly, tickTimer, resolveActiveAnomaly, updateVerification } = dashboardSlice.actions;
 export default dashboardSlice.reducer;
