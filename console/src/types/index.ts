@@ -32,4 +32,5 @@ export interface DashboardState {
   breakdown: AnomalyBreakdown;
   currentAnomalyTimer: number;
   recentAnomalies: Anomaly[];
+  isTimerActive: boolean;
 }
