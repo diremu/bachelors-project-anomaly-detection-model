@@ -4,6 +4,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import DashboardLayout from './components/Dashboard';
 import SystemOverview from './components/SystemOverview';
 import { Auth } from './pages/Auth';
+import { Configuration } from './pages/Configuration';
+import { IncidentReports } from './pages/IncidentReports';
+import {LiveFeeds} from './pages/LiveFeed'
 
 const PlaceholderPage = ({ title }: { title: string }) => (
   <div className="flex h-full items-center justify-center text-gray-500 font-poppins">
@@ -48,9 +51,9 @@ export default function App() {
       >
         <Route index element={<Navigate to="overview" replace />} />
         <Route path="overview" element={<SystemOverview />} />
-        <Route path="live-feeds" element={<PlaceholderPage title="Real-time Feeds" />} />
-        <Route path="reports" element={<PlaceholderPage title="Incident Reports" />} />
-        <Route path="config" element={<PlaceholderPage title="Configuration" />} />
+        <Route path="live-feeds" element={<LiveFeeds />} />
+        <Route path="reports" element={<IncidentReports />} />
+        <Route path="config" element={<Configuration />} />
       </Route>
       <Route
         path="*"
