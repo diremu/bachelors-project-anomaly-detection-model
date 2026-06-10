@@ -23,6 +23,11 @@ export default function App() {
     setIsAuthenticated(true);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    setIsAuthenticated(false);
+  };
+
   return (
     <Routes>
       <Route
@@ -38,7 +43,7 @@ export default function App() {
       <Route
         path="/"
         element={
-          isAuthenticated ? <DashboardLayout /> : <Navigate to="/login" replace />
+          isAuthenticated ? <DashboardLayout onLogout={handleLogout} /> : <Navigate to="/login" replace />
         }
       >
         <Route index element={<Navigate to="overview" replace />} />
