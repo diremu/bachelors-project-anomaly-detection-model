@@ -40,3 +40,12 @@ body {
   background-color: #0d1117; /* Dark background from the design */
   color: #f0f6fc;
 }
+
+::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+* {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
