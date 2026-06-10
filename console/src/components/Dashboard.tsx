@@ -1,6 +1,6 @@
 import Sidebar from './Sidebar';
-import { Outlet } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 
 type DashboardProps = {
   onLogout: () => void;
@@ -8,6 +8,14 @@ type DashboardProps = {
 
 export default function Dashboard({ onLogout }: DashboardProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const location = useLocation();
+
+  const sectionTitle = useMemo(() => {
+    if (location.pathname.startsWith('/live-feeds')) return 'Real-time Feeds';
+    if (location.pathname.startsWith('/reports')) return 'Incident Reports';
+    if (location.pathname.startsWith('/config')) return 'Storage & Integration';
+    return 'System Overview';
+  }, [location.pathname]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -19,7 +27,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       <div className="absolute top-0 w-full h-16 flex items-center justify-between px-6 bg-[#161b22] border-b border-gray-800 z-10">
         <div className="flex items-center gap-3">
           <span className="text-xl font-semibold tracking-wide">
-            INMATE ANOMALY DETECTION
+            {sectionTitle}
           </span>
         </div>
         <div className="flex items-center gap-4">
