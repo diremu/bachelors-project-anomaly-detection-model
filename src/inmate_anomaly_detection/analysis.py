@@ -10,7 +10,7 @@ def compute_frame_differences(clip: torch.Tensor) -> np.ndarray:
 
     Args:
         clip: Tensor of shape (clip_length, 3, 224, 224).
-            Values may be ImageNet-normalized (non-zero centered).
+            Values are ImageNet-normalized (roughly in [-2.5, +2.5] per channel).
 
     Returns:
         Differences array of shape (clip_length - 1, 224, 224).
@@ -65,7 +65,7 @@ def compute_anomaly_score(
     entropy: Optional[float] = None,
     w_energy: float = 0.4,
     w_entropy: float = 0.6,
-    energy_scale: float = 1.0,
+    energy_scale: float = 0.5,
     entropy_scale: float = 5.0,
 ) -> float:
     """
@@ -80,7 +80,13 @@ def compute_anomaly_score(
         entropy:      Pre-computed motion entropy (avoids recomputing).
         w_energy:     Weight for motion energy component (default 0.4).
         w_entropy:    Weight for motion entropy component (default 0.6).
-        energy_scale: Expected max energy for normalization (tune on your data).
+        energy_scale: Expected max energy for normalization.
+                      FIX: default raised from 1.0 → 0.5. ImageNet
+                      normalization maps pixels to roughly [-2.5, +2.5], so
+                      inter-frame differences can easily reach ~0.5 even for
+                      moderate motion. A scale of 1.0 caused norm_energy to
+                      saturate at 1.0 for nearly every clip, making the energy
+                      component useless. Tune this on your validation set.
         entropy_scale: Expected max entropy in bits — log2(32 bins) = 5.0.
 
     Returns:

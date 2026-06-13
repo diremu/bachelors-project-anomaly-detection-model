@@ -162,7 +162,6 @@ class SpatiotemporalModel(nn.Module):
             reconstructed features: (B, T, CNN_FEATURE_DIM)
         """
         B, T, C, H, W = x.shape
-        # Process each frame through CNN
         x_flat = x.view(B * T, C, H, W)
         features = self.cnn_encoder(x_flat)          # (B*T, 512)
         features = features.view(B, T, -1)            # (B, T, 512)
@@ -170,12 +169,17 @@ class SpatiotemporalModel(nn.Module):
         reconstructed, _ = self.lstm_ae(features)
         return reconstructed
 
+    @torch.no_grad()
     def anomaly_score(self, x: torch.Tensor) -> torch.Tensor:
-        """Compute per-clip anomaly scores. Higher = more anomalous."""
+        """Compute per-clip anomaly scores. Higher = more anomalous.
+
+        FIX: decorated with @torch.no_grad() so evaluation calls do not build
+        a computation graph or retain gradients, saving memory and time.
+        """
         B, T, C, H, W = x.shape
         x_flat = x.view(B * T, C, H, W)
-        original_feats = self.cnn_encoder(x_flat).view(B, T, -1)  # run CNN once
-        reconstructed, _ = self.lstm_ae(original_feats)            # reconstruct
+        original_feats = self.cnn_encoder(x_flat).view(B, T, -1)
+        reconstructed, _ = self.lstm_ae(original_feats)
         return self.lstm_ae.compute_reconstruction_error(original_feats, reconstructed)
 
 

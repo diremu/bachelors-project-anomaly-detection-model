@@ -106,18 +106,21 @@ def train_one_epoch(
     loss_meter = AverageMeter()
     batch_times = AverageMeter()
 
-    for batch_idx, (clips, labels) in enumerate(dataloader):
+    # FIX: collate_clips returns a 3-tuple (clips, labels, categories);
+    # unpack all three to avoid ValueError: too many values to unpack.
+    for batch_idx, (clips, labels, categories) in enumerate(dataloader):
         t0 = time.time()
         clips = clips.to(device)  # (B, T, C, H, W)
+        B = clips.size(0)
 
-        # Forward: get reconstructed features
-        reconstructed = model(clips)
-
-        # Build ground-truth features
+        # FIX: extract features once and pass them directly to the LSTM AE
+        # so the CNN runs only a single forward pass per batch.
+        # Previously model(clips) ran the CNN internally, then the code called
+        # model.cnn_encoder again to get original_feats — doubling CNN cost.
         B, T, C, H, W = clips.shape
         clips_flat = clips.view(B * T, C, H, W)
-        with torch.no_grad():
-            original_feats = model.cnn_encoder(clips_flat).view(B, T, -1)
+        original_feats = model.cnn_encoder(clips_flat).view(B, T, -1)  # (B, T, 512)
+        reconstructed, _ = model.lstm_ae(original_feats)               # (B, T, 512)
 
         loss = criterion(reconstructed, original_feats)
 
@@ -145,22 +148,25 @@ def validate(
     loss_meter = AverageMeter()
     per_label_loss = defaultdict(list)
 
-    for clips, labels in dataloader:
+    # FIX: collate_clips returns a 3-tuple; unpack categories too.
+    for clips, labels, categories in dataloader:
         clips = clips.to(device)
         B, T, C, H, W = clips.shape
 
-        reconstructed = model(clips)
-
         clips_flat = clips.view(B * T, C, H, W)
         original_feats = model.cnn_encoder(clips_flat).view(B, T, -1)
+        reconstructed, _ = model.lstm_ae(original_feats)
 
         loss = criterion(reconstructed, original_feats)
         loss_meter.update(loss.item(), B)
 
-        # Per-sample losses for breakdown
+        # Per-sample losses for label breakdown.
+        # FIX: cast lbl to int so all samples with the same label share one
+        # dict key. Iterating a torch.long tensor yields 0-d tensors which
+        # are not equal to each other by identity, creating spurious duplicate keys.
         sample_losses = model.lstm_ae.compute_reconstruction_error(original_feats, reconstructed)
-        for lbl, sl in zip(labels, sample_losses.cpu().tolist()):
-            per_label_loss[lbl].append(sl)
+        for lbl, sl in zip(labels.tolist(), sample_losses.cpu().tolist()):
+            per_label_loss[int(lbl)].append(sl)
 
     # Aggregate per-label
     label_stats = {lbl: {"mean": sum(v) / len(v), "count": len(v)} for lbl, v in per_label_loss.items()}

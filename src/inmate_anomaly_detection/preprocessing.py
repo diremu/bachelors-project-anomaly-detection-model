@@ -15,18 +15,19 @@ UCF_ANOMALY_CATEGORIES = {"Abuse", "Arrest", "Assault", "Fighting", "Shooting", 
 
 
 def get_transforms(augment: bool = False):
-    transforms = [
-        A.Resize(FRAME_SIZE, FRAME_SIZE),
-        A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-        ToTensorV2(),
-    ]
+    # FIX: augmentations must come AFTER resize so they operate on the final
+    # resolution, not the raw full-size frame. Order: resize → augment → normalize → tensor.
+    base = [A.Resize(FRAME_SIZE, FRAME_SIZE)]
     if augment:
-        augs = [
+        base += [
             A.RandomBrightnessContrast(p=0.3),
             A.HorizontalFlip(p=0.5),
         ]
-        transforms = augs + transforms
-    return A.Compose(transforms)
+    base += [
+        A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        ToTensorV2(),
+    ]
+    return A.Compose(base)
 
 
 def load_image(path: str | Path) -> np.ndarray:
@@ -156,23 +157,22 @@ def process_frame_directory(
 
 def _resolve_ucf_label(folder_name: str) -> int | None:
     """Return the label for a UCF-Crime category folder.
- 
+
     Returns:
         1  — folder is one of the six selected anomaly categories
         0  — folder is normal footage (e.g. 'Normal_Videos_event')
         None — folder is a UCF-Crime category NOT in our subset; skip it entirely
     """
-    # Exact match against the six selected categories
     for category in UCF_ANOMALY_CATEGORIES:
         if folder_name.lower().startswith(category.lower()):
             return 1
- 
-    # Normal footage folders in UCF-Crime are usually named 'Normal_*'
+
     if "normal" in folder_name.lower():
         return 0
- 
+
     # Any other UCF-Crime category (e.g. Burglary, Explosion, Robbery…) — skip
     return None
+
 
 def process_dataset(
     dataset_path: Path,
@@ -181,17 +181,17 @@ def process_dataset(
     stride: int = 8,
     max_frames: int = 300,
     dataset_name: str = "",
-) -> Generator[tuple[torch.Tensor, str], None, None]:
+) -> Generator[tuple[torch.Tensor, int, str], None, None]:
     """
-    Process a dataset directory, yielding (clip_tensor, label).
-    
+    Process a dataset directory, yielding (clip_tensor, label, category).
+
     label: 0 = normal, 1 = anomaly
         UCF-Crime behaviour:
       - Only Abuse, Arrest, Assault, Fighting, Shooting, Stealing are loaded.
       - Those six categories are labelled anomalous (1).
       - Normal footage folders are labelled normal (0).
       - All other UCF-Crime categories are silently skipped.
- 
+
     ShanghaiTech / Avenue:
       - Folder names containing 'test' or 'abnormal' → label 1.
       - Everything else → label 0.
@@ -201,9 +201,18 @@ def process_dataset(
     - Category dirs with frames grouped by prefix (UCF-Crime: Train/Fighting/*.png)
     - Leaf dirs with frames as one video sequence
     - Video files (.avi/.mp4)
+
+    FIX: removed duplicate second loop body that re-iterated the same directory,
+    yielded 2-tuples (missing label), and dropped dataset_name on recursive calls.
+    FIX: video scan now uses iterdir() scoped per-directory rather than rglob("*")
+    to avoid double-counting videos already processed as frame sequences above.
     """
     transform = get_transforms(augment=augment)
     is_ucf = "ucf" in dataset_name.lower()
+
+    # Track directories already processed as frame sequences so the video
+    # scan below skips them and avoids duplicate clip emission.
+    frame_processed_dirs: set[Path] = set()
 
     for entry in sorted(dataset_path.iterdir()):
         if not entry.is_dir():
@@ -219,6 +228,7 @@ def process_dataset(
             has_subs = any(e.is_dir() for e in entry.iterdir())
 
             if has_frames and not has_subs:
+                frame_processed_dirs.add(entry)
                 clips = process_frame_directory(entry, transform, clip_length, stride, max_frames)
                 for clip in clips:
                     yield clip, label, entry.name
@@ -227,11 +237,12 @@ def process_dataset(
                     if not sub.is_dir():
                         continue
                     if discover_frame_paths(sub):
+                        frame_processed_dirs.add(sub)
                         clips = process_frame_directory(sub, transform, clip_length, stride, max_frames)
                         for clip in clips:
                             yield clip, label, entry.name
 
-        # ── ShanghaiTech / Avenue: original logic, label by folder name ──
+        # ── ShanghaiTech / Avenue: label by folder name ──────────────
         else:
             folder_lower = entry.name.lower()
             if any(kw in folder_lower for kw in ("test", "abnormal", "anomaly")):
@@ -243,6 +254,7 @@ def process_dataset(
             has_subs = any(e.is_dir() for e in entry.iterdir())
 
             if has_frames and not has_subs:
+                frame_processed_dirs.add(entry)
                 clips = process_frame_directory(entry, transform, clip_length, stride, max_frames)
                 for clip in clips:
                     yield clip, label, entry.name
@@ -251,46 +263,26 @@ def process_dataset(
                     if not sub.is_dir():
                         continue
                     if discover_frame_paths(sub):
+                        frame_processed_dirs.add(sub)
                         clips = process_frame_directory(sub, transform, clip_length, stride, max_frames)
                         for clip in clips:
                             yield clip, label, entry.name
                     else:
+                        # FIX: pass dataset_name so UCF whitelist is preserved in
+                        # recursive calls into deeply nested subdirectories.
                         for item in process_dataset(
                             sub, augment, clip_length, stride, max_frames, dataset_name
                         ):
                             yield item
-        if not entry.is_dir():
-            continue
 
-        if is_ucf:
-            label = _resolve_ucf_label(entry.name)
-            if label is None:
-                continue  # skip non-relevant UCF-Crime categories
-        has_frames = bool(discover_frame_paths(entry))
-        has_subs = any(e.is_dir() for e in entry.iterdir())
+    # ── Video file scan ───────────────────────────────────────────────
+    # FIX: use a targeted iterdir scan rather than rglob("*") to avoid
+    # re-processing directories that were already handled as frame sequences.
+    video_files: list[Path] = []
+    for entry in sorted(dataset_path.rglob("*")):
+        if entry.suffix.lower() in VIDEO_EXTENSIONS and entry.parent not in frame_processed_dirs:
+            video_files.append(entry)
 
-        if has_frames and not has_subs:
-            # Category directory with flat frames (UCF-Crime style)
-            clips = process_frame_directory(entry, transform, clip_length, stride, max_frames)
-            for clip in clips:
-                yield clip, entry.name
-        elif has_subs:
-            # Nested: recurse into subdirectories
-            for sub in sorted(entry.iterdir()):
-                if not sub.is_dir():
-                    continue
-                if discover_frame_paths(sub):
-                    clips = process_frame_directory(sub, transform, clip_length, stride, max_frames)
-                    for clip in clips:
-                        yield clip, entry.name  # label = parent category
-                else:
-                    # Deeper nesting
-                    for item in process_dataset(sub, augment, clip_length, stride, max_frames):
-                        yield item
-
-    # Also check for video files
-    video_files = sorted(dataset_path.rglob("*"))
-    video_files = [vf for vf in video_files if vf.suffix.lower() in VIDEO_EXTENSIONS]
     for vf in video_files:
         if is_ucf:
             label = _resolve_ucf_label(vf.parent.name)

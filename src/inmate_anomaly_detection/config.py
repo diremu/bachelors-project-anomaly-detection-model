@@ -52,11 +52,16 @@ DATASET_PATHS = {
     "shanghaitech": DATASET_ROOT / "archive (3)" / "ShanghaiTech",
 }
 
-PROCESSED_DIR = DATASET_ROOT.parent / "processed"
-PROCESSED_DIR.mkdir(exist_ok=True)
-
+PROCESSED_DIR  = DATASET_ROOT.parent / "processed"
 CHECKPOINT_DIR = Path(__file__).parent.parent.parent / "checkpoints"
-CHECKPOINT_DIR.mkdir(exist_ok=True)
+
+# FIX: mkdir calls removed from module level. Running them at import time
+# creates directories in any environment that imports config — including tests
+# and CI — even when those paths don't exist or shouldn't be created.
+# Callers that need the directories should create them explicitly, e.g.:
+#   PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+#   CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+# save_checkpoint() in train_utils.py already does this for CHECKPOINT_DIR.
 
 # ---------------------------------------------------------------------------
 # Evaluation
