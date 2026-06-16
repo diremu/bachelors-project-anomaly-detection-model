@@ -44,6 +44,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
           </div>
           <nav className="pl-6 space-y-1 text-sm">
             <NavLink to="/overview" className={linkStyles}>System Overview</NavLink>
+            <NavLink to="/model-performance" className={linkStyles}>Model Performance</NavLink>
             <NavLink to="/live-feeds" className={linkStyles}>Real-time Feeds</NavLink>
             <NavLink to="/reports" className={linkStyles}>Incident Reports</NavLink>
           </nav>

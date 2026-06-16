@@ -12,6 +12,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
   const sectionTitle = useMemo(() => {
     if (location.pathname.startsWith('/live-feeds')) return 'Real-time Feeds';
+    if (location.pathname.startsWith('/model-performance')) return 'Model Performance';
     if (location.pathname.startsWith('/reports')) return 'Incident Reports';
     if (location.pathname.startsWith('/config')) return 'Storage & Integration';
     return 'System Overview';

@@ -7,6 +7,7 @@ import { Auth } from './pages/Auth';
 import { Configuration } from './pages/Configuration';
 import { IncidentReports } from './pages/IncidentReports';
 import { LiveFeeds } from './pages/LiveFeed';
+import { ModelPerformance } from './pages/ModelPerformance';
 
 const AUTH_SESSION_KEY = 'console_auth_active';
 
@@ -45,6 +46,7 @@ export default function App() {
       >
         <Route index element={<Navigate to="overview" replace />} />
         <Route path="overview" element={<SystemOverview />} />
+        <Route path="model-performance" element={<ModelPerformance />} />
         <Route path="live-feeds" element={<LiveFeeds />} />
         <Route path="reports" element={<IncidentReports />} />
         <Route path="config" element={<Configuration />} />
