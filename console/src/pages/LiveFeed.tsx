@@ -275,7 +275,7 @@ export const LiveFeeds = () => {
           ) : (
             <>
               <h2 className="text-sm font-semibold text-gray-300 tracking-wide uppercase">Upload Video</h2>
-              <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#0d1117] rounded-lg border border-dashed border-gray-700 p-6">
+              <div className="flex-1 flex min-w-0 flex-col items-center justify-center gap-4 bg-[#0d1117] rounded-lg border border-dashed border-gray-700 p-6">
                 <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
@@ -284,7 +284,7 @@ export const LiveFeeds = () => {
                   type="file"
                   accept="video/*"
                   onChange={handleUpload}
-                  className="text-sm text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-teal-600/20 file:text-teal-400 hover:file:bg-teal-600/30"
+                  className="w-full max-w-full min-w-0 text-sm text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-teal-600/20 file:text-teal-400 hover:file:bg-teal-600/30"
                 />
               </div>
 

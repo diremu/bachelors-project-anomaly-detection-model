@@ -2,6 +2,21 @@ import { useAppDispatch, useAppSelector } from '../store';
 import type { VerificationStatus } from '../types';
 import { updateVerification } from '../store/dashboardSlice';
 
+function exportToCsv(anomalies: { id: string; timestamp: string; location: string; inmateId: string; anomalyType: string; duration: string; verification: string; severity: string }[]) {
+  const header = 'Log ID,Timestamp,Location,Inmate ID,Anomaly Type,Duration,Verification,Severity';
+  const rows = anomalies.map(a =>
+    [a.id, a.timestamp, `"${a.location}"`, a.inmateId, a.anomalyType, a.duration, a.verification, a.severity].join(',')
+  );
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `anomaly_log_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function RecentAnomaliesLog() {
   const dispatch = useAppDispatch();
   const anomalies = useAppSelector((state) => state.dashboard.recentAnomalies);
@@ -31,7 +46,7 @@ export default function RecentAnomaliesLog() {
     <div className="bg-[#161b22] p-5 rounded-xl border border-gray-800/60 shadow-lg flex-1 flex flex-col min-h-[300px] font-poppins relative overflow-hidden">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-sm font-semibold text-gray-300 tracking-wide uppercase">Recent Anomalies Log</h2>
-        <button className="text-xs font-medium text-teal-500 hover:text-teal-400 transition-colors flex items-center gap-1 bg-teal-500/10 px-3 py-1.5 rounded-md">
+        <button onClick={() => exportToCsv(anomalies)} className="text-xs font-medium text-teal-500 hover:text-teal-400 transition-colors flex items-center gap-1 bg-teal-500/10 px-3 py-1.5 rounded-md">
           Export Log
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
         </button>
