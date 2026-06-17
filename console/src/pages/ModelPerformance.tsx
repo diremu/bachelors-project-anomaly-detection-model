@@ -274,7 +274,7 @@ export const ModelPerformance: React.FC = () => {
                     <span className="text-2xl font-bold text-white">{cm.tn}</span>
                     <span className="text-[10px] text-gray-400">TN</span>
                   </div>
-                  <div
+                  <div  
                     className="w-28 h-24 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors"
                     style={{ backgroundColor: `rgba(239, 68, 68, ${0.1 + (cm.fp / cmTotal) * 0.6})` }}
                   >
