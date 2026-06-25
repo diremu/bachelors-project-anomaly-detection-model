@@ -115,7 +115,7 @@ class LSTMAutoencoder(nn.Module):
 
         # Decode — repeat last hidden state across time steps then feed through decoder LSTM
         batch_size, seq_len = x.size(0), x.size(1)
-        decoder_input = encoded[:, -1:, :].repeat(1, seq_len, 1)
+        decoder_input = encoded
         decoded, _ = self.decoder_lstm(decoder_input)
 
         # Project back to feature space
