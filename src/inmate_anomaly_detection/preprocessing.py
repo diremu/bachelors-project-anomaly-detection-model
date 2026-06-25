@@ -224,8 +224,9 @@ def process_dataset(
             if label is None:
                 # Category not in our six — skip entirely
                 continue
-            has_frames = bool(discover_frame_paths(entry))
-            has_subs = any(e.is_dir() for e in entry.iterdir())
+            entries_in_dir = list(entry.iterdir())
+            has_frames = any(p.suffix.lower() in VIDEO_EXTENSIONS for p in entries_in_dir if p.is_file())
+            has_subs = any(p.is_dir() for p in entries_in_dir)
 
             if has_frames and not has_subs:
                 frame_processed_dirs.add(entry)
@@ -275,13 +276,13 @@ def process_dataset(
                         ):
                             yield item
 
-    # ── Video file scan ───────────────────────────────────────────────
-    # FIX: use a targeted iterdir scan rather than rglob("*") to avoid
-    # re-processing directories that were already handled as frame sequences.
-    video_files: list[Path] = []
-    for entry in sorted(dataset_path.rglob("*")):
-        if entry.suffix.lower() in VIDEO_EXTENSIONS and entry.parent not in frame_processed_dirs:
-            video_files.append(entry)
+
+    for category_dir in dataset_path.iterdir():
+        if not category_dir.is_dir() or category_dir in frame_processed_dirs:
+            continue
+        for entry in category_dir.iterdir():
+            if entry.is_file() and entry.suffix.lower() in VIDEO_EXTENSIONS:
+                video_files.append(entry)
 
     for vf in video_files:
         if is_ucf:

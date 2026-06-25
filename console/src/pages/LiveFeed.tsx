@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { useAppDispatch } from '../store';
 import { receiveNewAnomaly } from '../store/dashboardSlice';
+import { getEngine, type EngineStatus } from '../lib/onnxInference';
 
 const MOCK_THRESHOLD = 0.004218;
 
@@ -21,21 +22,14 @@ type AlertEntry = {
   time: string;
 };
 
-/** Generate a plausible anomaly score.
- *  Normal clips hover around 0.001-0.003; anomalous clips spike to 0.005-0.012.
- *  The `anomalyChance` controls how often spikes occur.
- */
+/** Fallback mock score when ONNX models are not loaded. */
 function mockScore(prev: number, anomalyChance = 0.12): number {
   const isSpike = Math.random() < anomalyChance;
-  if (isSpike) {
-    return 0.005 + Math.random() * 0.007;            // 0.005 – 0.012
-  }
-  // Brownian-ish walk around normal baseline
+  if (isSpike) return 0.005 + Math.random() * 0.007;
   const drift = (Math.random() - 0.52) * 0.0008;
   return Math.max(0.0005, Math.min(0.004, prev + drift));
 }
 
-/** Smooth over a sliding window. */
 function smooth(buf: number[], n = 5): number {
   const tail = buf.slice(-n);
   return tail.reduce((a, b) => a + b, 0) / tail.length;
@@ -43,6 +37,11 @@ function smooth(buf: number[], n = 5): number {
 
 export const LiveFeeds = () => {
   const dispatch = useAppDispatch();
+
+  // ONNX engine state
+  const [engineStatus, setEngineStatus] = useState<EngineStatus>('unloaded');
+  const [engineError, setEngineError] = useState('');
+  const [inferenceProgress, setInferenceProgress] = useState('');
 
   // State
   const [mode, setMode] = useState<'stream' | 'upload'>('upload');
@@ -57,6 +56,24 @@ export const LiveFeeds = () => {
   const rawScoresRef = useRef<number[]>([]);
   const idxRef = useRef(0);
 
+  // ── Init ONNX engine on mount ──
+  useEffect(() => {
+    const engine = getEngine();
+    if (engine.status === 'ready') {
+      setEngineStatus('ready');
+      return;
+    }
+    setEngineStatus('loading');
+    engine.init().then(() => {
+      setEngineStatus('ready');
+    }).catch(() => {
+      setEngineStatus('unloaded');
+      setEngineError('ONNX models not found — using simulated scores. Place encoder.onnx and temporal.onnx in public/.');
+    });
+  }, []);
+
+  const usingOnnx = engineStatus === 'ready';
+
   // ── Video file selection ──
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,7 +85,7 @@ export const LiveFeeds = () => {
     idxRef.current = 0;
   };
 
-  // ── Mock inference tick ──
+  // ── Mock inference tick (fallback) ──
   const tick = useCallback(() => {
     const prev = rawScoresRef.current.length > 0
       ? rawScoresRef.current[rawScoresRef.current.length - 1]
@@ -85,7 +102,7 @@ export const LiveFeeds = () => {
 
     if (isAnomaly) {
       const alert: AlertEntry = {
-        frame: idx * 8,    // stride = 8
+        frame: idx * 8,
         score: smoothed,
         time: new Date().toLocaleTimeString(),
       };
@@ -106,7 +123,7 @@ export const LiveFeeds = () => {
   // ── Start / stop ──
   const startStream = useCallback(() => {
     videoRef.current?.play();
-    intervalRef.current = setInterval(tick, 250);  // ~4 scores/sec for visual pacing
+    intervalRef.current = setInterval(tick, 250);
     setIsStreaming(true);
   }, [tick]);
 
@@ -117,54 +134,101 @@ export const LiveFeeds = () => {
     setIsStreaming(false);
   }, []);
 
-  // ── Upload mode: instant batch results ──
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── Upload mode: ONNX batch scoring or mock fallback ──
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     rawScoresRef.current = [];
     idxRef.current = 0;
+    setScores([]);
+    setAlerts([]);
 
-    // Simulate 40-80 clips worth of scores
-    const nClips = 40 + Math.floor(Math.random() * 40);
-    const pts: ScorePoint[] = [];
-    const newAlerts: AlertEntry[] = [];
-    let prev = 0.002;
+    const engine = getEngine();
 
-    for (let i = 0; i < nClips; i++) {
-      const raw = mockScore(prev);
-      rawScoresRef.current.push(raw);
-      const smoothed = smooth(rawScoresRef.current);
-      const isAnomaly = smoothed > MOCK_THRESHOLD;
-      prev = raw;
+    if (engine.isReady) {
+      // ── Real ONNX inference ──
+      setInferenceProgress('Preparing video…');
+      const url = URL.createObjectURL(file);
 
-      pts.push({ idx: i, score: smoothed, threshold: MOCK_THRESHOLD, anomaly: isAnomaly });
+      try {
+        const allScores = await engine.scoreVideo(url, (clipIdx, score, total) => {
+          setInferenceProgress(`Scoring clip ${clipIdx + 1} / ${total}`);
 
-      if (isAnomaly) {
-        newAlerts.push({
-          frame: i * 8,
-          score: smoothed,
-          time: new Date().toLocaleTimeString(),
+          const isAnomaly = score > MOCK_THRESHOLD;
+          const pt: ScorePoint = { idx: clipIdx, score, threshold: MOCK_THRESHOLD, anomaly: isAnomaly };
+          setScores(prev => [...prev, pt]);
+
+          if (isAnomaly) {
+            const alert: AlertEntry = {
+              frame: clipIdx * 8,
+              score,
+              time: new Date().toLocaleTimeString(),
+            };
+            setAlerts(prev => [alert, ...prev].slice(0, 50));
+
+            if (clipIdx < 5) {
+              dispatch(receiveNewAnomaly({
+                id: `onnx_${Date.now()}_${clipIdx}`,
+                timestamp: alert.time,
+                location: 'Uploaded Video (ONNX)',
+                inmateId: '—',
+                anomalyType: 'Anomalous Activity',
+                duration: `frame ${alert.frame}`,
+                verification: 'Pending',
+                severity: score > MOCK_THRESHOLD * 2 ? 'critical' : 'warning',
+              }));
+            }
+          }
         });
+
+        setInferenceProgress(`Done — ${allScores.length} clips scored`);
+      } catch (err) {
+        setInferenceProgress(`Inference error: ${err instanceof Error ? err.message : String(err)}`);
+      } finally {
+        URL.revokeObjectURL(url);
       }
+    } else {
+      // ── Mock fallback ──
+      const nClips = 40 + Math.floor(Math.random() * 40);
+      const pts: ScorePoint[] = [];
+      const newAlerts: AlertEntry[] = [];
+      let prev = 0.002;
+
+      for (let i = 0; i < nClips; i++) {
+        const raw = mockScore(prev);
+        rawScoresRef.current.push(raw);
+        const smoothed = smooth(rawScoresRef.current);
+        const isAnomaly = smoothed > MOCK_THRESHOLD;
+        prev = raw;
+
+        pts.push({ idx: i, score: smoothed, threshold: MOCK_THRESHOLD, anomaly: isAnomaly });
+
+        if (isAnomaly) {
+          newAlerts.push({
+            frame: i * 8,
+            score: smoothed,
+            time: new Date().toLocaleTimeString(),
+          });
+        }
+      }
+
+      setScores(pts);
+      setAlerts(newAlerts.slice(0, 50));
+
+      newAlerts.slice(0, 5).forEach(a => {
+        dispatch(receiveNewAnomaly({
+          id: `upload_${Date.now()}_${a.frame}`,
+          timestamp: a.time,
+          location: 'Uploaded Video',
+          inmateId: '—',
+          anomalyType: 'Anomalous Activity',
+          duration: `frame ${a.frame}`,
+          verification: 'Pending',
+          severity: a.score > MOCK_THRESHOLD * 2 ? 'critical' : 'warning',
+        }));
+      });
     }
-
-    setScores(pts);
-    setAlerts(newAlerts.slice(0, 50));
-
-    // Dispatch top 5 to Redux
-    newAlerts.slice(0, 5).forEach(a => {
-      dispatch(receiveNewAnomaly({
-        id: `upload_${Date.now()}_${a.frame}`,
-        timestamp: a.time,
-        location: 'Uploaded Video',
-        inmateId: '—',
-        anomalyType: 'Anomalous Activity',
-        duration: `frame ${a.frame}`,
-        verification: 'Pending',
-        severity: a.score > MOCK_THRESHOLD * 2 ? 'critical' : 'warning',
-      }));
-    });
   };
 
   // Cleanup
@@ -205,6 +269,16 @@ export const LiveFeeds = () => {
           <span className={`w-2.5 h-2.5 rounded-full ${isStreaming ? 'bg-green-500 animate-pulse' : 'bg-gray-600'}`} />
           <span className="text-xs text-gray-400 uppercase tracking-wider">
             {isStreaming ? 'Streaming' : 'Idle'}
+          </span>
+        </div>
+
+        {/* ONNX engine status */}
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${
+            usingOnnx ? 'bg-teal-400' : engineStatus === 'loading' ? 'bg-yellow-500 animate-pulse' : 'bg-orange-500'
+          }`} />
+          <span className="text-xs text-gray-500">
+            {usingOnnx ? 'ONNX Model Loaded' : engineStatus === 'loading' ? 'Loading model…' : 'Mock Mode'}
           </span>
         </div>
 
@@ -304,7 +378,19 @@ export const LiveFeeds = () => {
                     <span className="text-gray-500">Peak score</span>
                     <span className="text-gray-300 font-mono">{Math.max(...scores.map(s => s.score)).toFixed(6)}</span>
                   </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Inference</span>
+                    <span className="text-gray-300">{usingOnnx ? 'ONNX' : 'Simulated'}</span>
+                  </div>
                 </div>
+              )}
+
+              {inferenceProgress && (
+                <p className="text-xs text-teal-400 animate-pulse">{inferenceProgress}</p>
+              )}
+
+              {engineError && !usingOnnx && (
+                <p className="text-xs text-orange-400">{engineError}</p>
               )}
             </>
           )}

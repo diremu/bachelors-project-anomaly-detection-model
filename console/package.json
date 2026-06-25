@@ -17,6 +17,7 @@
     "react-router": "^7.17.0",
     "react-router-dom": "^7.17.0",
     "recharts": "^3.8.1",
+    "onnxruntime-web": "^1.21.0",
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
