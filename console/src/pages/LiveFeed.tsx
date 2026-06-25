@@ -39,9 +39,12 @@ export const LiveFeeds = () => {
   const dispatch = useAppDispatch();
 
   // ONNX engine state
-  const [engineStatus, setEngineStatus] = useState<EngineStatus>('unloaded');
-  const [engineError, setEngineError] = useState('');
-  const [inferenceProgress, setInferenceProgress] = useState('');
+  const [engineStatus, setEngineStatus] = useState<EngineStatus>(() => {
+    const engine = getEngine();
+    return engine.status === 'ready' ? 'ready' : 'loading';
+  });
+  const [engineError, setEngineError] = useState<string>('');
+  const [inferenceProgress, setInferenceProgress] = useState<string>('');
 
   // State
   const [mode, setMode] = useState<'stream' | 'upload'>('upload');
@@ -59,11 +62,8 @@ export const LiveFeeds = () => {
   // ── Init ONNX engine on mount ──
   useEffect(() => {
     const engine = getEngine();
-    if (engine.status === 'ready') {
-      setEngineStatus('ready');
-      return;
-    }
-    setEngineStatus('loading');
+    if (engine.status === 'ready') return;
+
     engine.init().then(() => {
       setEngineStatus('ready');
     }).catch(() => {
@@ -240,10 +240,6 @@ export const LiveFeeds = () => {
 
   const tooltipFormatter = (
     value: string | number | readonly (string | number)[] | undefined,
-    _name: string | number | undefined,
-    _item: unknown,
-    _index: number,
-    _payload: readonly unknown[],
   ): ReactNode => typeof value === 'number' ? value.toFixed(6) : String(value ?? '');
 
   const tooltipStyle = {
@@ -327,6 +323,7 @@ export const LiveFeeds = () => {
                   <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1">Source Video</label>
                   <input
                     type="file"
+                    title="Select a source video for streaming"
                     accept="video/*"
                     onChange={handleFile}
                     className="w-full text-sm text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-teal-600/20 file:text-teal-400 hover:file:bg-teal-600/30"
@@ -356,6 +353,7 @@ export const LiveFeeds = () => {
                 <p className="text-sm text-gray-500">Upload a video clip for batch scoring</p>
                 <input
                   type="file"
+                  title="Upload a video clip for batch scoring"
                   accept="video/*"
                   onChange={handleUpload}
                   className="w-full max-w-full min-w-0 text-sm text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-teal-600/20 file:text-teal-400 hover:file:bg-teal-600/30"
@@ -399,7 +397,7 @@ export const LiveFeeds = () => {
         {/* Right: Score chart + alerts */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Score timeline */}
-          <div className="bg-[#161b22] p-5 rounded-xl border border-gray-800/60 shadow-lg flex-1 min-h-[300px]">
+          <div className="bg-[#161b22] p-5 rounded-xl border border-gray-800/60 shadow-lg flex-1 min-h-75">
             <h2 className="text-sm font-semibold text-gray-300 tracking-wide uppercase mb-4">
               Anomaly Score Timeline
               {scores.length > 0 && (
@@ -408,7 +406,7 @@ export const LiveFeeds = () => {
             </h2>
 
             {scores.length === 0 ? (
-              <div className="flex items-center justify-center h-[240px] text-gray-600 text-sm">
+              <div className="flex items-center justify-center h-60 text-gray-600 text-sm">
                 {mode === 'stream' ? 'Start streaming to see scores' : 'Upload a video to see scores'}
               </div>
             ) : (
@@ -447,7 +445,7 @@ export const LiveFeeds = () => {
           </div>
 
           {/* Alerts */}
-          <div className="bg-[#161b22] p-5 rounded-xl border border-gray-800/60 shadow-lg max-h-[240px] overflow-y-auto">
+          <div className="bg-[#161b22] p-5 rounded-xl border border-gray-800/60 shadow-lg max-h-60 overflow-y-auto">
             <h2 className="text-sm font-semibold text-gray-300 tracking-wide uppercase mb-3">
               Session Alerts
               {alerts.length > 0 && (
